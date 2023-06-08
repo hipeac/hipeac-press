@@ -1,0 +1,29 @@
+.DS_Store
+._*
+
+# Django
+
+__pycache__
+*.py[cod]
+*$py.class
+.mypy_cache
+.vscode
+
+.coverage
+.env
+.pytest_cache
+dev.db
+htmlcov
+test-reports
+
+# Vitepress
+
+node_modules
+.vitepress/cache
+.vitepress/dist
+.source
+.md
+
+# Other
+
+cloc.md
