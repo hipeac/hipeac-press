@@ -22,9 +22,24 @@ rmtree(destination_path, ignore_errors=True)
 destination_path.mkdir(exist_ok=True)
 
 for section in reader.tree:
-    for docx in section["items"]:
-        md = MarkdownTransformer(docx.document).get(with_frontmatter=True)
-        with open(f"{DESTINATION_FOLDER}/{slugify(section['text'])}--{docx.slug}.md", "w") as md_file:
+    items = section["items"]
+    section_slug = slugify(section["text"])
+
+    for i, item in enumerate(items):
+        if i > 0:
+            item.prev = {
+                "text": items[i - 1].title,
+                "link": f"/{section_slug}--{items[i - 1].slug}",
+            }
+        if i < len(items) - 1:
+            item.next = {
+                "text": items[i + 1].title,
+                "link": f"/{section_slug}--{items[i + 1].slug}",
+            }
+
+    for docx in items:
+        md = MarkdownTransformer(docx.document).get(with_frontmatter=True, prev=docx.prev, next=docx.next)
+        with open(f"{DESTINATION_FOLDER}/{section_slug}--{docx.slug}.md", "w") as md_file:
             md_file.write(md)
         docx.copy_images(destination_path)
 

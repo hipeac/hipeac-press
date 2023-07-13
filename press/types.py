@@ -43,6 +43,7 @@ class ListParagraph(BaseModel):
 
 
 class Document(BaseModel):
+    section: str | None = None
     title: str | None = None
     description: str | None = None
     authors: list[Author] = []

@@ -19,7 +19,7 @@ class MarkdownTransformer(Transformer):
     A transformer that converts a document into Markdown.
     """
 
-    def get(self, *, with_frontmatter: bool = False) -> str:
+    def get(self, *, with_frontmatter: bool = False, prev: dict | None = None, next: dict | None) -> str:
         """
         Transform the document into Markdown.
         """
@@ -37,6 +37,14 @@ class MarkdownTransformer(Transformer):
             )
             md += f"keywords: {', '.join(self.document.keywords)}\n" if self.document.keywords else ""
             md += f"lastUpdated: {self.document.updated_at.isoformat()}\n"
+            md += f"""prev:
+  text: {prev['text']}
+  link: {prev['link']}
+""" if prev else "prev: false\n"
+            md += f"""next:
+  text: {next['text']}
+  link: {next['link']}
+""" if next else "next: false\n"
             md += "---\n\n\n"
 
         for element in self.document.elements:

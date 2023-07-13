@@ -22,12 +22,14 @@ BIBLIOGRAPHY_PATTERN = re.compile(r"\[(\d+)\] ")
 
 
 class Docx:
-    def __init__(self, docx_path: Path):
+    def __init__(self, docx_path: Path, *, prev: dict | None = None, next: dict | None = None):
         self._docx_path = docx_path
         self._img_folder = uuid4().hex
         self.errors: list[str] = []
         self.filename = docx_path.name
         self.document = self._read_document()
+        self.prev = prev
+        self.next = next
 
     def __repr__(self):
         return f"Docx({self.filename})"
@@ -179,6 +181,12 @@ class Docx:
         with ZipFile(self._docx_path) as zip_file:
             for _, img_target in self.document.images.items():
                 zip_file.extract(f"word/{img_target}", target_path / self._img_folder)
+
+    def set_prev(self, dict):
+        self.prev = dict
+
+    def set_next(self, dict):
+        self.next = dict
 
     def to_submenu(self, prefix: str = "") -> dict[str, str]:
         return {
