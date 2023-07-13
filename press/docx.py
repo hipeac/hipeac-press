@@ -1,6 +1,7 @@
 from datetime import datetime
 from defusedxml.ElementTree import parse
 from pathlib import Path
+from uuid import uuid4
 from zipfile import ZipFile
 
 from .types import Document, Header, Paragraph, Quote, ListParagraph, ListItem, Author, Image, Reference
@@ -19,10 +20,10 @@ EMBED_NAMESPACE = "{http://schemas.openxmlformats.org/officeDocument/2006/relati
 class Docx:
     def __init__(self, docx_path: Path):
         self._docx_path = docx_path
+        self._img_folder = uuid4().hex
         self.errors: list[str] = []
         self.filename = docx_path.name
         self.document = self._read_document()
-        self._copy_images()
 
     def __repr__(self):
         return f"Docx({self.filename})"
@@ -30,9 +31,6 @@ class Docx:
     def _open_xml(self, path: str):
         with ZipFile(self._docx_path) as file:
             return parse(file.open(path))
-
-    def _copy_images(self):
-        pass
 
     def _read_document(self) -> Document:
         """
@@ -54,14 +52,15 @@ class Docx:
 
         for rel in rels_tree.iter(f"{RELS_NAMESPACE}Relationship"):
             if "relationships/image" in rel.attrib["Type"]:
-                document.images[rel.attrib["Id"]] = f'./images/word/{rel.attrib["Target"]}'
+                document.images[rel.attrib["Id"]] = rel.attrib["Target"]
 
         for el in document_tree.find(f"{WORD_NAMESPACE}body").iter():
             if el.find(f"{PIC_NAMESPACE}pic") is not None:
                 for pic in el.iter(f"{PIC_NAMESPACE}pic"):
                     for blip in pic.iter(f"{A_NAMESPACE}blip"):
                         if blip.attrib[f"{EMBED_NAMESPACE}embed"] in document.images:
-                            document.elements.append(Image(path=document.images[blip.attrib[f"{EMBED_NAMESPACE}embed"]]))
+                            img_target = document.images[blip.attrib[f"{EMBED_NAMESPACE}embed"]]
+                            document.elements.append(Image(path=f'./{self._img_folder}/word/{img_target}'))
 
             if el.tag == f"{WORD_NAMESPACE}p":
                 paragraph_style = el.find(f"{WORD_NAMESPACE}pPr/{WORD_NAMESPACE}pStyle")
@@ -233,3 +232,11 @@ class Docx:
             "text": self.title,
             "link": f"{prefix}--{self.slug}.md" if prefix else f"{self.slug}.md",
         }
+
+    def copy_images(self, target_path: Path):
+        """
+        Open the docx zip file and move the images to the target path.
+        """
+        with ZipFile(self._docx_path) as zip_file:
+            for _, img_target in self.document.images.items():
+                zip_file.extract(f"word/{img_target}", target_path / self._img_folder)

@@ -111,6 +111,19 @@
   border-width: 3px;
 }
 
+.vp-doc img {
+  margin: 4em auto 1em;
+  max-width: 90%;
+}
+
+.vp-doc img + p {
+  /* image caption */
+  font-size: 0.9em;
+  color: #666;
+  margin: 1em 0 3em;
+  text-align: center;
+}
+
 .footnotes-sep {
   display: none;
 }
