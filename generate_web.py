@@ -38,3 +38,6 @@ with open(f"{DESTINATION_FOLDER}/sidebar.json", "w") as navigation_file:
         section["items"] = [docx.to_submenu(slugify(section["text"])) for docx in section["items"]]
         submenu.append(section)
     navigation_file.write(json.dumps(submenu))
+
+# copy public folder to .md folder
+os.system(f"cp -r {PARENT}/public {DESTINATION_FOLDER}/public")
