@@ -5,6 +5,7 @@ from pathlib import Path
 from shutil import rmtree
 
 from press.reader import Reader
+from press.transformers.markdown import MarkdownTransformer
 from press.utils import slugify
 
 
@@ -22,7 +23,7 @@ destination_path.mkdir(exist_ok=True)
 
 for section in reader.tree:
     for docx in section["items"]:
-        md = docx.to_markdown(with_frontmatter=True)
+        md = MarkdownTransformer(docx.document).get(with_frontmatter=True)
         with open(f"{DESTINATION_FOLDER}/{slugify(section['text'])}--{docx.slug}.md", "w") as md_file:
             md_file.write(md)
         docx.copy_images(destination_path)

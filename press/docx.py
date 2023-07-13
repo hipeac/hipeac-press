@@ -1,3 +1,5 @@
+import re
+
 from datetime import datetime
 from defusedxml.ElementTree import parse
 from pathlib import Path
@@ -5,7 +7,7 @@ from uuid import uuid4
 from zipfile import ZipFile
 
 from .types import Document, Header, Paragraph, Quote, ListParagraph, ListItem, Author, Image, Reference
-from .utils import md_footnote, slugify
+from .utils import slugify
 
 
 CP_NAMESPACE = "{http://schemas.openxmlformats.org/package/2006/metadata/core-properties}"
@@ -15,6 +17,8 @@ RELS_NAMESPACE = "{http://schemas.openxmlformats.org/package/2006/relationships}
 PIC_NAMESPACE = "{http://schemas.openxmlformats.org/drawingml/2006/picture}"
 A_NAMESPACE = "{http://schemas.openxmlformats.org/drawingml/2006/main}"
 EMBED_NAMESPACE = "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}"
+
+BIBLIOGRAPHY_PATTERN = re.compile(r"\[(\d+)\] ")
 
 
 class Docx:
@@ -41,14 +45,14 @@ class Docx:
         metadata_tree = self._open_xml("docProps/core.xml")
         rels_tree = self._open_xml("word/_rels/document.xml.rels")
 
+        document = Document(updated_at=datetime.fromtimestamp(self._docx_path.stat().st_mtime))
+        author_bios: list[str] = []
+
         try:
             title = metadata_tree.find(f"{DC_NAMESPACE}title").text.strip()
         except AttributeError:
             self.errors.append("No title found in metadata (File > Properties... > Summary)")
             title = None
-
-        document = Document(title=title, updated_at=datetime.fromtimestamp(self._docx_path.stat().st_mtime))
-        author_bios: list[str] = []
 
         for rel in rels_tree.iter(f"{RELS_NAMESPACE}Relationship"):
             if "relationships/image" in rel.attrib["Type"]:
@@ -72,6 +76,9 @@ class Docx:
                     style = paragraph_style.attrib[f"{WORD_NAMESPACE}val"]
 
                     if style.startswith("Heading"):
+                        if text == "References":
+                            continue
+
                         try:
                             level = int(style[len("Heading") :])
                         except ValueError:
@@ -81,7 +88,9 @@ class Docx:
                     elif style == "Quote":
                         use_class = Quote
 
-                    elif style == "Reference":
+                    elif style == "Bibliography":
+                        if BIBLIOGRAPHY_PATTERN.match(text):
+                            continue
                         document.references.append(Reference(text=text))
                         continue
 
@@ -134,6 +143,21 @@ class Docx:
         except AttributeError:
             self.errors.append("No keywords found in metadata (File > Properties... > Summary)")
 
+        # -----
+        # add title and description
+        # -----
+
+        if title is not None:
+            document.title = title
+        else:
+            for element in document.elements:
+                if isinstance(element, Header) and element.level == 1:
+                    document.title = element.text
+
+        for element in document.elements:
+            if isinstance(element, Quote):
+                document.description = element.text
+
         return document
 
     @property
@@ -142,96 +166,11 @@ class Docx:
 
     @property
     def title(self) -> str:
-        return self.document.title or self.long_title or self.filename
-
-    @property
-    def long_title(self) -> str | None:
-        for element in self.document.elements:
-            if isinstance(element, Header) and element.level == 1:
-                return element.text
-        return None
+        return self.document.title or self.filename
 
     @property
     def slug(self) -> str:
-        return slugify(self.document.title or self.long_title or self.filename)
-
-    @property
-    def description(self) -> str | None:
-        for element in self.document.elements:
-            if isinstance(element, Quote):
-                return element.text
-        return None
-
-    def to_markdown(self, *, with_frontmatter: bool = False) -> str:
-        """
-        Return current document as markdown.
-        Add Frontmatter options if with_frontmatter is True.
-        """
-
-        md = ""
-
-        if with_frontmatter:
-            md += "---\n"
-            md += f"title: >\n  {self.title}\n" if self.title else ""
-            md += f"description: >\n  {self.description}\n" if self.description else ""
-            md += (
-                f"authors: {', '.join(author.name for author in self.document.authors)}\n"
-                if self.document.authors
-                else ""
-            )
-            md += f"keywords: {', '.join(self.document.keywords)}\n" if self.document.keywords else ""
-            md += f"lastUpdated: {self.document.updated_at.isoformat()}\n"
-            md += "---\n\n\n"
-
-        for element in self.document.elements:
-            if isinstance(element, Header):
-                if element.text == "References":
-                    continue
-                md += "#" * element.level + " " + element.text + "\n\n"
-            elif isinstance(element, Quote):
-                md += "> " + md_footnote(element.text) + "\n\n"
-            elif isinstance(element, Paragraph):
-                md += md_footnote(element.text) + "\n\n"
-            elif isinstance(element, ListParagraph):
-                for item in element.items:
-                    if element.numbered:
-                        bullet = f"{element.items.index(item) + 1}."
-                    else:
-                        bullet = "-"
-                    md += f"{bullet} " + md_footnote(item.paragraphs[0].text) + "\n"
-                    for paragraph in item.paragraphs[1:]:
-                        md += "  " + md_footnote(paragraph.text) + "\n"
-                md += "\n"
-            elif isinstance(element, Image):
-                md += f"![{element.path}]({element.path})"
-                if element.caption:
-                    md += f"  \n*{md_footnote(element.caption)}*"
-                md += "\n\n"
-
-        if self.document.authors:
-            title = "Author" if len(self.document.authors) == 1 else "Authors"
-            md += f"\n::: info {title}\n\n"
-
-            for author in self.document.authors:
-                if author.bio:
-                    md += f"{author.bio}\n\n"
-                else:
-                    md += f"{author.name}\n\n"
-
-            md += ":::\n\n"
-
-        if self.document.references:
-            md += "\n"
-            for reference in self.document.references:
-                md += f"{md_footnote(reference.text, True)}\n\n"
-
-        return md
-
-    def to_submenu(self, prefix: str = "") -> dict[str, str]:
-        return {
-            "text": self.title,
-            "link": f"{prefix}--{self.slug}.md" if prefix else f"{self.slug}.md",
-        }
+        return slugify(self.document.title or self.filename)
 
     def copy_images(self, target_path: Path):
         """
@@ -240,3 +179,9 @@ class Docx:
         with ZipFile(self._docx_path) as zip_file:
             for _, img_target in self.document.images.items():
                 zip_file.extract(f"word/{img_target}", target_path / self._img_folder)
+
+    def to_submenu(self, prefix: str = "") -> dict[str, str]:
+        return {
+            "text": self.title,
+            "link": f"{prefix}--{self.slug}.md" if prefix else f"{self.slug}.md",
+        }

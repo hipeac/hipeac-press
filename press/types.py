@@ -44,6 +44,7 @@ class ListParagraph(BaseModel):
 
 class Document(BaseModel):
     title: str | None = None
+    description: str | None = None
     authors: list[Author] = []
     elements: list[Header | Paragraph | Quote | Image | ListParagraph] = []
     keywords: list[str] = []
