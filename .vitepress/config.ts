@@ -7,7 +7,7 @@ import MarkdownItFootnote from 'markdown-it-footnote';
 // https://vitepress.dev/reference/site-config
 
 export default defineConfig({
-  srcDir: './.md',
+  srcDir: './.build',
   outDir: './html',
 
   lang: 'en',
@@ -31,7 +31,7 @@ export default defineConfig({
 
   themeConfig: {
     logo: '/hipeac.svg',
-    sidebar: require('../.md/sidebar.json'),
+    sidebar: require('../.build/sidebar.json'),
     nav: [
       { text: 'Vision document', link: '/' },
       { text: 'HiPEAC.net', link: 'https://www.hipeac.net/' }

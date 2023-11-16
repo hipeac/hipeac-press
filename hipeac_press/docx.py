@@ -1,12 +1,12 @@
 import re
-
 from datetime import datetime
-from defusedxml.ElementTree import parse
 from pathlib import Path
 from uuid import uuid4
 from zipfile import ZipFile
 
-from .types import Document, Header, Paragraph, Quote, ListParagraph, ListItem, Author, Image, Reference
+from defusedxml.ElementTree import parse
+
+from .types import Author, Document, Header, Image, InfoBox, ListItem, ListParagraph, Paragraph, Quote, Reference
 from .utils import slugify
 
 
@@ -22,11 +22,27 @@ BIBLIOGRAPHY_PATTERN = re.compile(r"\[(\d+)\] ")
 
 
 class Docx:
-    def __init__(self, docx_path: Path, *, prev: dict | None = None, next: dict | None = None):
+    """A class to represent a Word docx file as a Document object wrapper.
+
+    Attributes:
+        document (Document): The parsed document object.
+        errors (list[str]): A list of errors encountered during parsing.
+        filename (str): The filename of the docx file.
+        section_name (str | None): The name of the section this document belongs to.
+        prev (dict | None): The previous document in the tree.
+        next (dict | None): The next document in the tree.
+    """
+
+    document: Document
+
+    def __init__(
+        self, docx_path: Path, *, section_name: str | None = None, prev: dict | None = None, next: dict | None = None
+    ):
         self._docx_path = docx_path
         self._img_folder = uuid4().hex
         self.errors: list[str] = []
         self.filename = docx_path.name
+        self.section_name = section_name
         self.document = self._read_document()
         self.prev = prev
         self.next = next
@@ -39,10 +55,6 @@ class Docx:
             return parse(file.open(path))
 
     def _read_document(self) -> Document:
-        """
-        Read the contents of a docx file and generate a Document object.
-        """
-
         document_tree = self._open_xml("word/document.xml")
         metadata_tree = self._open_xml("docProps/core.xml")
         rels_tree = self._open_xml("word/_rels/document.xml.rels")
@@ -66,7 +78,7 @@ class Docx:
                     for blip in pic.iter(f"{A_NAMESPACE}blip"):
                         if blip.attrib[f"{EMBED_NAMESPACE}embed"] in document.images:
                             img_target = document.images[blip.attrib[f"{EMBED_NAMESPACE}embed"]]
-                            document.elements.append(Image(path=f'./{self._img_folder}/word/{img_target}'))
+                            document.elements.append(Image(path=f"./{self._img_folder}/word/{img_target}"))
 
             if el.tag == f"{WORD_NAMESPACE}p":
                 paragraph_style = el.find(f"{WORD_NAMESPACE}pPr/{WORD_NAMESPACE}pStyle")
@@ -89,6 +101,9 @@ class Docx:
 
                     elif style == "Quote":
                         use_class = Quote
+
+                    elif style == "InfoBox":
+                        use_class = InfoBox
 
                     elif style == "Bibliography":
                         if BIBLIOGRAPHY_PATTERN.match(text):
@@ -145,7 +160,7 @@ class Docx:
         except AttributeError:
             self.errors.append("No keywords found in metadata (File > Properties... > Summary)")
 
-        # -----
+        # -----
         # add title and description
         # -----
 
@@ -164,32 +179,29 @@ class Docx:
 
     @property
     def images(self) -> list[Image]:
+        """Return a list of all images in the document."""
         return [element for element in self.document.elements if isinstance(element, Image)]
 
     @property
     def title(self) -> str:
+        """Return the title of the document, or the filename if no title is found."""
         return self.document.title or self.filename
 
     @property
     def slug(self) -> str:
-        return slugify(self.document.title or self.filename)
+        """Return a slug based on the section name and the title of the document."""
+        return f"{slugify(self.section_name or 'n')}--{slugify(self.document.title or self.filename)}"
 
     def copy_images(self, target_path: Path):
-        """
-        Open the docx zip file and move the images to the target path.
-        """
+        """Open the docx zip file and move the images to the target path."""
         with ZipFile(self._docx_path) as zip_file:
             for _, img_target in self.document.images.items():
                 zip_file.extract(f"word/{img_target}", target_path / self._img_folder)
 
     def set_prev(self, dict):
+        """Set the previous document in the tree."""
         self.prev = dict
 
     def set_next(self, dict):
+        """Set the next document in the tree."""
         self.next = dict
-
-    def to_submenu(self, prefix: str = "") -> dict[str, str]:
-        return {
-            "text": self.title,
-            "link": f"{prefix}--{self.slug}.md" if prefix else f"{self.slug}.md",
-        }

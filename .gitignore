@@ -22,7 +22,7 @@ node_modules
 .vitepress/cache
 .vitepress/dist
 .source
-.md
+.build
 
 # Other
 

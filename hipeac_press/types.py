@@ -1,5 +1,6 @@
 from datetime import datetime
 from pathlib import Path
+
 from pydantic import BaseModel
 
 
@@ -15,6 +16,10 @@ class Header(BaseModel):
 
 class Paragraph(BaseModel):
     text: str
+
+
+class InfoBox(Paragraph):
+    pass
 
 
 class Quote(Paragraph):

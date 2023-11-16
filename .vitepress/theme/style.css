@@ -140,7 +140,15 @@ html, body {
   padding-left: 20px;
 }
 
+.vp-doc ul,
+.vp-doc ol {
+  margin-left: 1rem;
+}
+
 .vp-doc img {
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 10px;
   margin: 4em auto 1em;
   max-width: 90%;
 }
@@ -172,8 +180,17 @@ html, body {
 
 /* Sidebar */
 
+.VPSidebar {
+  background-image: url(/public/particles.png);
+}
+
 .VPSidebarItem.level-0 h2 {
   line-height: 1.25;
+}
+
+.VPSidebarItem .VPLink p {
+  line-height: 1.3;
+  padding: 6px 0;
 }
 
 /* Footer */
