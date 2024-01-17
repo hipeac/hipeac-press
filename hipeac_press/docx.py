@@ -1,24 +1,47 @@
 import re
+import subprocess
 from datetime import datetime
 from pathlib import Path
 from uuid import uuid4
 from zipfile import ZipFile
 
+import orjson
 from defusedxml.ElementTree import parse
+from PIL import Image as PILImage
+from PIL import UnidentifiedImageError
 
-from .types import Author, Document, Header, Image, InfoBox, ListItem, ListParagraph, Paragraph, Quote, Reference
+from .type_definitions import (
+    Author,
+    AuthorBio,
+    BulletList,
+    Document,
+    Header,
+    Image,
+    InfoBox,
+    OrderedList,
+    PandocElement,
+    Paragraph,
+    Quote,
+    Reference,
+)
 from .utils import slugify
 
 
 CP_NAMESPACE = "{http://schemas.openxmlformats.org/package/2006/metadata/core-properties}"
 DC_NAMESPACE = "{http://purl.org/dc/elements/1.1/}"
-WORD_NAMESPACE = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
 RELS_NAMESPACE = "{http://schemas.openxmlformats.org/package/2006/relationships}"
-PIC_NAMESPACE = "{http://schemas.openxmlformats.org/drawingml/2006/picture}"
-A_NAMESPACE = "{http://schemas.openxmlformats.org/drawingml/2006/main}"
-EMBED_NAMESPACE = "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}"
 
 BIBLIOGRAPHY_PATTERN = re.compile(r"\[(\d+)\] ")
+
+
+def style_from_div(div: dict) -> str | None:
+    """Return a style from a Pandoc Div."""
+    if div["t"] == "Div":
+        try:
+            return div["c"][0][2][0][1]
+        except IndexError:
+            return None
+    return None
 
 
 class Docx:
@@ -40,6 +63,7 @@ class Docx:
     ):
         self._docx_path = docx_path
         self._img_folder = uuid4().hex
+        self._pandoc_obj: dict = {}
         self.errors: list[str] = []
         self.filename = docx_path.name
         self.section_name = section_name
@@ -55,89 +79,73 @@ class Docx:
             return parse(file.open(path))
 
     def _read_document(self) -> Document:
-        document_tree = self._open_xml("word/document.xml")
-        metadata_tree = self._open_xml("docProps/core.xml")
+        try:
+            metadata_tree = self._open_xml("docProps/core.xml")
+        except KeyError:
+            self.errors.append("No metadata found (File > Properties... > Summary)")
+            metadata_tree = None
         rels_tree = self._open_xml("word/_rels/document.xml.rels")
 
         document = Document(updated_at=datetime.fromtimestamp(self._docx_path.stat().st_mtime))
         author_bios: list[str] = []
+        pandocjson = subprocess.run(
+            ["pandoc", "--from=docx+citations+styles", "--to=json", "--quiet", str(self._docx_path)],
+            capture_output=True,
+        )
+
+        if pandocjson.returncode == 0:
+            self._pandoc_obj = orjson.loads(pandocjson.stdout)
 
         try:
             title = metadata_tree.find(f"{DC_NAMESPACE}title").text.strip()
         except AttributeError:
-            self.errors.append("No title found in metadata (File > Properties... > Summary)")
+            self.errors.append(
+                "No title found in metadata (File > Properties... > Summary). "
+                "It will be used as shorter title in menus and navigation."
+            )
             title = None
+
+        for el in self._pandoc_obj["blocks"]:
+            try:
+                if el["t"] == "Para" and el["c"][0]["t"] == "Image":
+                    document.elements.append(Image(path=f"./{self._img_folder}/word/{el['c'][0]['c'][2][0]}"))
+                    continue
+            except IndexError:
+                pass
+
+            t_classes = {
+                "Author": AuthorBio,
+                "Author (with title)": Paragraph,
+                "Bibliography": Reference,
+                "BulletList": BulletList,
+                "InfoBox": InfoBox,
+                "OrderedList": OrderedList,
+                "Para": Paragraph,
+                "Quote": Quote,
+            }
+            div_type = style_from_div(el) if el["t"] == "Div" else None
+
+            if el["t"] == "Header":
+                document.elements.append(Header(level=el["c"][0], data=[el]))
+            elif div_type == "Author (with title)":
+                document.elements.append(t_classes[div_type](data=[el]))
+            elif div_type and div_type in {"Author", "Quote"}:
+                document.elements.append(t_classes[div_type](data=[el["c"][1][0]]))
+            elif div_type and div_type.lower() == "caption":
+                if isinstance(document.elements[-1], Image):
+                    document.elements[-1].caption = PandocElement(data=[el["c"][1][0]])
+                    continue
+            elif div_type and div_type == "Bibliography":
+                document.references.append(t_classes[div_type](data=[el["c"][1][0]]))
+            elif el["t"] in t_classes:
+                if el["t"] == "Bibliography":
+                    print("Bibliography found:", el["c"][1][0]["c"][0])
+                document.elements.append(t_classes[el["t"]](data=[el]))
+            continue
 
         for rel in rels_tree.iter(f"{RELS_NAMESPACE}Relationship"):
             if "relationships/image" in rel.attrib["Type"]:
                 document.images[rel.attrib["Id"]] = rel.attrib["Target"]
-
-        for el in document_tree.find(f"{WORD_NAMESPACE}body").iter():
-            if el.find(f"{PIC_NAMESPACE}pic") is not None:
-                for pic in el.iter(f"{PIC_NAMESPACE}pic"):
-                    for blip in pic.iter(f"{A_NAMESPACE}blip"):
-                        if blip.attrib[f"{EMBED_NAMESPACE}embed"] in document.images:
-                            img_target = document.images[blip.attrib[f"{EMBED_NAMESPACE}embed"]]
-                            document.elements.append(Image(path=f"./{self._img_folder}/word/{img_target}"))
-
-            if el.tag == f"{WORD_NAMESPACE}p":
-                paragraph_style = el.find(f"{WORD_NAMESPACE}pPr/{WORD_NAMESPACE}pStyle")
-                text = "".join([node.text for node in el.iter(f"{WORD_NAMESPACE}t") if node.text])
-
-                use_class, kwargs = Paragraph, {}  # default
-
-                if paragraph_style is not None:
-                    style = paragraph_style.attrib[f"{WORD_NAMESPACE}val"]
-
-                    if style.startswith("Heading"):
-                        if text == "References":
-                            continue
-
-                        try:
-                            level = int(style[len("Heading") :])
-                        except ValueError:
-                            level = 1
-                        use_class, kwargs = Header, {"level": level}
-
-                    elif style == "Quote":
-                        use_class = Quote
-
-                    elif style == "InfoBox":
-                        use_class = InfoBox
-
-                    elif style == "Bibliography":
-                        if BIBLIOGRAPHY_PATTERN.match(text):
-                            continue
-                        document.references.append(Reference(text=text))
-                        continue
-
-                    elif style == "Caption":
-                        if isinstance(document.elements[-1], Image):
-                            document.elements[-1].caption = text
-                            continue
-
-                    elif style in {"ListParagraph", "NumberedListParagraph"}:
-                        if not isinstance(document.elements[-1], ListParagraph):
-                            document.elements.append(
-                                ListParagraph(items=[], numbered=(style == "NumberedListParagraph"))
-                            )
-
-                        # check if we are starting a new item, or if this is just another paragraph in the same item
-                        if el.find(f"{WORD_NAMESPACE}pPr/{WORD_NAMESPACE}ind") is None:
-                            document.elements[-1].items.append(ListItem(paragraphs=[]))
-
-                        try:
-                            document.elements[-1].items[-1].paragraphs.append(Paragraph(text=text))
-                        except IndexError:
-                            document.elements[-1].items.append(ListItem(paragraphs=[Paragraph(text=text)]))
-                        continue
-
-                    elif style == "Author":
-                        author_bios.append(text)
-                        continue
-
-                if text:
-                    document.elements.append(use_class(text=text, **kwargs))
 
         # -----
         # check metadata
@@ -167,13 +175,14 @@ class Docx:
         if title is not None:
             document.title = title
         else:
+            document.title = self.filename
             for element in document.elements:
                 if isinstance(element, Header) and element.level == 1:
-                    document.title = element.text
+                    document.title = element.to_string()
 
-        for element in document.elements:
-            if isinstance(element, Quote):
-                document.description = element.text
+        # for element in document.elements:
+        # if isinstance(element, Quote):
+        # document.description = element.text
 
         return document
 
@@ -196,7 +205,27 @@ class Docx:
         """Open the docx zip file and move the images to the target path."""
         with ZipFile(self._docx_path) as zip_file:
             for _, img_target in self.document.images.items():
-                zip_file.extract(f"word/{img_target}", target_path / self._img_folder)
+                try:
+                    zip_file.extract(f"word/{img_target}", target_path / self._img_folder)
+                except KeyError:
+                    self.errors.append(f"Image {img_target} not found in docx file")
+                    continue
+
+                # check image resolution
+                # column is 7.5 cm wide aprox., at 200 dpi that's 590px
+                try:
+                    img = PILImage.open(target_path / self._img_folder / f"word/{img_target}")
+
+                    if img.width < 590:
+                        for image in self.images:
+                            if img_target in str(image.path):
+                                caption = image.caption
+                                caption_text = f" ({caption.to_string()[:15]}...)" if caption else ""
+                                self.errors.append(f"Image {img_target} has low resolution{caption_text}")
+                            else:
+                                continue
+                except UnidentifiedImageError:
+                    pass
 
     def set_prev(self, dict):
         """Set the previous document in the tree."""

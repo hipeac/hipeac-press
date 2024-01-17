@@ -4,6 +4,8 @@ from hipeac_press.docx import Docx
 
 
 class Reader:
+    """A class to represent a reader of a folder structure."""
+
     def __init__(self, path: Path):
         self.path = path
         self.main_folders = [
@@ -25,12 +27,17 @@ class Reader:
     @property
     def tree(self):
         """Return the simplified tree structure.
+
         Folder names are preceded by 01, 02, 03, etc. to keep the order; we can remove that part.
         """
         tree = []
 
         for main_folder in self.main_folders:
-            section_name = main_folder.name[3:]
+            # skip folders starting with tmp
+            if main_folder.name.startswith("tmp"):
+                continue
+
+            section_name = main_folder.name[3:].strip()
             tree.append(
                 {
                     "text": section_name,

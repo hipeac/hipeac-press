@@ -8,8 +8,16 @@ license = "MIT"
 [tool.poetry.dependencies]
 python = "~3.11.0"
 defusedxml = "*"
-pdfino = "*"
+orjson = "*"
+pdfino = {extras = ["markdown"], version = "*"}
+python-docx = "*"
+unstructured = {extras = ["docx"], version = "*"}
+
 pydantic = "*"
+markdown-it-py = "*"
+pypandoc = "*"
+pyphen = "*"
+pypdf = "==3.10.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "*"

@@ -11,13 +11,24 @@ The HiPEAC Vision printing press is a parser for the [hipeac.net/vision][hipeac-
 It takes all Word documents that the editorial board has written and converts them into a collection
 of Python objects that can be used to generate different outputs.
 
+### Application dependencies
+
+The application uses [Poetry][poetry] to manage application dependencies.
+
+```bash
+poetry lock
+poetry install --sync --no-root
+```
+
+`pandoc` needs to be installed on the system.
+
 ### Run the builder
 
 This will generate a `.build` folder with all Word documents converted to Markdown and PDF files,
 and a folder structure and Frontmatter fields that can be used by Vitepress to generate the website.
 
 ```bash
-poetry run python build.py
+python build.py
 ```
 
 ### Run the tests

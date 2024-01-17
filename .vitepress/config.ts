@@ -3,6 +3,8 @@ import { defineConfig } from 'vitepress';
 import MarkdownItAbbr from 'markdown-it-abbr';
 import MarkdownItDeflist from 'markdown-it-deflist';
 import MarkdownItFootnote from 'markdown-it-footnote';
+import MarkdownItSub from 'markdown-it-sub';
+import MarkdownItSup from 'markdown-it-sup';
 
 // https://vitepress.dev/reference/site-config
 
@@ -33,8 +35,8 @@ export default defineConfig({
     logo: '/hipeac.svg',
     sidebar: require('../.build/sidebar.json'),
     nav: [
-      { text: 'Vision document', link: '/' },
-      { text: 'HiPEAC.net', link: 'https://www.hipeac.net/' }
+      { text: 'Rationale', link: '/introduction--introduction' },
+      { text: 'HiPEAC.net', link: 'https://www.hipeac.net/vision/' }
     ],
     search: {
       provider: 'local'
@@ -44,7 +46,7 @@ export default defineConfig({
     ],
     footer: {
       message: 'The HiPEAC project has received funding from the European Union\'s Horizon Europe research and innovation funding programme under grant agreement number 101069836. Views and opinions expressed are however those of the author(s) only and do not necessarily reflect those of the European Union. Neither the European Union nor the granting authority can be held responsible for them.',
-      copyright: '© 2004-2023 High Performance, Edge And Cloud computing'
+      copyright: '© 2004-2024 High Performance, Edge And Cloud computing'
     },
   },
 
@@ -53,6 +55,8 @@ export default defineConfig({
       md.use(MarkdownItAbbr);
       md.use(MarkdownItDeflist);
       md.use(MarkdownItFootnote);
+      md.use(MarkdownItSub);
+      md.use(MarkdownItSup);
     }
   },
 })

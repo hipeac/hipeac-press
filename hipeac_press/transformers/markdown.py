@@ -1,6 +1,6 @@
 import re
 
-from ..types import Header, Image, ListParagraph, Paragraph, Quote
+from ..type_definitions import AuthorBio, BulletList, Header, Image, OrderedList, Paragraph, Quote
 from .base import Transformer
 
 
@@ -58,7 +58,8 @@ class MarkdownTransformer(Transformer):
             md += f"lastUpdated: {self.document.updated_at.isoformat()}\n"
             md += (
                 f"""prev:
-  text: {prev['text']}
+  text: >
+    {prev['text']}
   link: {prev['link']}
 """
                 if prev
@@ -66,7 +67,8 @@ class MarkdownTransformer(Transformer):
             )
             md += (
                 f"""next:
-  text: {next['text']}
+  text: >
+    {next['text']}
   link: {next['link']}
 """
                 if next
@@ -76,45 +78,52 @@ class MarkdownTransformer(Transformer):
 
         if with_badges:
             md += "<Badge type='info' text='DOI 2122 323' />&nbsp;"
-            md += f"<a href='./{slug}.pdf' target='_blank'><Badge type='danger' text='PDF' /></a>\n\n"
+            # md += f"<a href='./{slug}.pdf' target='_blank'><Badge type='danger' text='PDF' /></a>&nbsp;"
+            md += "\n\n"
+
+        figure_count = 0
 
         for element in self.document.elements:
-            if isinstance(element, Header):
-                md += "#" * element.level + " " + element.text + "\n\n"
-            elif isinstance(element, Quote):
-                md += "> " + md_footnote(element.text) + "\n\n"
-            elif isinstance(element, Paragraph):
-                if element.text == "References":
+            if isinstance(element, Header | Paragraph | Quote | BulletList | OrderedList):
+                tom = element.to_markdown()
+                if "### References" in tom:
                     continue
-                md += md_footnote(element.text) + "\n\n"
-            elif isinstance(element, ListParagraph):
-                for item in element.items:
-                    bullet = f"{element.items.index(item) + 1}." if element.numbered else "-"
-                    md += f"{bullet} " + md_footnote(item.paragraphs[0].text) + "\n"
-                    for paragraph in item.paragraphs[1:]:
-                        md += "  " + md_footnote(paragraph.text) + "\n"
-                md += "\n"
+                md += tom + "\n"
+
             elif isinstance(element, Image):
-                md += f'<img src="{element.path}" alt="{element.caption}">'
+                md += f"![]({element.path})"
                 if element.caption:
-                    md += f"\n\n*{md_footnote(element.caption)}*"
+                    figure_count += 1
+                    caption = element.caption.to_markdown()
+                    caption = caption[:-1] if caption.endswith("\n") else caption
+                    md += f"\n*{caption}*"
                 md += "\n\n"
 
-        if self.document.authors:
-            title = "Author" if len(self.document.authors) == 1 else "Authors"
-            md += f"\n::: info {title}\n\n"
+        # Authors
 
-            for author in self.document.authors:
-                if author.bio:
-                    md += f"{author.bio}\n\n"
-                else:
-                    md += f"{author.name}\n\n"
+        authors = []
+
+        for element in self.document.elements:
+            if isinstance(element, AuthorBio):
+                authors.append(element)
+
+        if authors:
+            title = "Author" if len(authors) == 1 else "Authors"
+            md += f"\n::: info {title.upper()}\n\n"
+
+            for element in authors:
+                md += element.to_markdown() + "\n"
 
             md += ":::\n\n"
 
+        # References
+
         if self.document.references:
-            md += "\n### References\n\n"
+            md += "\n::: info REFERENCES\n\n"
             for idx, reference in enumerate(self.document.references):
-                md += f"[^{idx + 1}]: {reference.text}\n"
+                if reference.to_string() == "References":
+                    continue
+                md += f"[^{idx + 1}]: {reference.to_markdown()}"
+            md += "\n:::\n\n"
 
         return md
