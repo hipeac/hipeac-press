@@ -28,6 +28,18 @@ export default defineConfig({
         rel: 'stylesheet',
         href: 'https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&family=Roboto+Slab:wght@400;600&display=swap',
       }
+    ],
+    [
+      'script',
+      { async: '', src: 'https://www.googletagmanager.com/gtag/js?id=G-KXQ0GTGPP8' }
+    ],
+    [
+      'script',
+      {},
+      `window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-KXQ0GTGPP8');`
     ]
   ],
 
@@ -35,8 +47,8 @@ export default defineConfig({
     logo: '/hipeac.svg',
     sidebar: require('../.build/sidebar.json'),
     nav: [
-      { text: 'Rationale', link: '/introduction--introduction' },
-      { text: 'HiPEAC.net', link: 'https://www.hipeac.net/vision/' }
+      { text: 'Vision', link: '/introduction--foreword' },
+      { text: 'HiPEAC.net', link: 'https://www.hipeac.net/' }
     ],
     search: {
       provider: 'local'
@@ -46,7 +58,7 @@ export default defineConfig({
     ],
     footer: {
       message: 'The HiPEAC project has received funding from the European Union\'s Horizon Europe research and innovation funding programme under grant agreement number 101069836. Views and opinions expressed are however those of the author(s) only and do not necessarily reflect those of the European Union. Neither the European Union nor the granting authority can be held responsible for them.',
-      copyright: '© 2004-2024 High Performance, Edge And Cloud computing'
+      copyright: '© 2004-2025 High Performance, Edge And Cloud computing'
     },
   },
 

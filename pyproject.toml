@@ -1,23 +1,21 @@
 [tool.poetry]
 name = "hipeac-press"
-version = "0.1.0"
+version = "0.2.0"
 description = ""
 authors = ["Eneko Illarramendi <eneko.illarramendi@ugent.be>"]
 license = "MIT"
 
 [tool.poetry.dependencies]
 python = "~3.11.0"
-defusedxml = "*"
-orjson = "*"
-pdfino = {extras = ["markdown"], version = "*"}
-python-docx = "*"
-unstructured = {extras = ["docx"], version = "*"}
-
+markdownify = "*"
+markdown2 = "*"
+pdfino = {git = "https://github.com/eillarra/pdfino.git", branch = "main"}
 pydantic = "*"
-markdown-it-py = "*"
-pypandoc = "*"
-pyphen = "*"
-pypdf = "==3.10.0"
+pypdf = "*"
+pypub3 = "*"
+python-docx = "*"
+svglib = "*"
+weasyprint = "*"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "*"
@@ -38,12 +36,9 @@ addopts = "--cov=hipeac_press --cov-report=html"
 target-version = "py311"
 line-length = 120
 
-[tool.ruff.isort]
-lines-after-imports = 2
-
 [tool.ruff.lint]
 select = ["E", "F", "UP", "B", "SIM", "I", "D"]
-ignore = ["B026", "SIM105", "D100", "D104", "D105", "D107", "D417"]
+ignore = ["SIM105", "D100", "D104", "D105", "D107", "D417", "D203", "D213"]
 
-[tool.ruff.lint.pydocstyle]
-convention = "google"
+[tool.ruff.lint.isort]
+lines-after-imports = 2

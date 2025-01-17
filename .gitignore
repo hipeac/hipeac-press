@@ -27,7 +27,8 @@ node_modules
 .vitepress/dist
 .source
 .build
-.build_copy
+
+html
 
 # Other
 

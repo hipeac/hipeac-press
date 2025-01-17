@@ -1,0 +1,332 @@
+@font-face {
+  font-family: 'Roboto';
+  src: url('./fonts/Roboto-Regular.ttf') format('ttf');
+}
+
+@font-face {
+  font-family: 'Roboto Medium';
+  src: url('./fonts/Roboto-Medium.ttf') format('ttf');
+}
+
+@font-face {
+  font-family: 'Roboto Slab Medium';
+  src: url('./fonts/RobotoSlab-Medium.ttf') format('ttf');
+}
+
+@page {
+  size: a4 portrait;
+  margin: 2cm 4cm 3cm;
+}
+
+header {
+  position: fixed;
+  top: -3.5cm;
+  left: 0;
+  right: 0;
+}
+
+footer {
+  position: fixed;
+  bottom: -2cm;
+  left: 0;
+  right: 0;
+  font-size: 9px;
+  color: #666;
+}
+
+body {
+  font-family: 'Roboto';
+  padding: 0;
+  margin: 0;
+  text-align: justify;
+}
+
+body,
+.text-body1 {
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+
+/* Typography */
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  margin-top: 0;
+  text-align: left;
+  text-wrap: balance;
+}
+
+h1,
+h3 {
+  font-family: 'Roboto Slab Medium';
+}
+
+h2,
+h4,
+h5,
+th,
+b,
+strong,
+.text-strong {
+  font-family: 'Roboto Medium';
+}
+
+h1 {
+  font-size: 2.5em;
+  line-height: 1.1;
+  margin: 2cm 0;
+}
+
+h2 {
+  margin-top: 2rem;
+}
+
+h3 {
+  font-size: 1.1em;
+  line-height: 1.2;
+  color: #005eb8;
+  margin-top: 1.5rem;
+}
+
+h5 {
+  font-size: 1.1em;
+}
+
+code,
+samp {
+  font-family: monospace;
+  font-size: .85em;
+  line-height: 1;
+}
+
+.text-body2,
+.text-smaller {
+  font-size: .85em;
+  line-height: 1.25em;
+}
+
+.text-smallest {
+  font-size: .75em;
+}
+
+
+/* Links */
+
+a.inherit,
+.text-inherit {
+  color: inherit;
+  text-decoration: inherit;
+}
+
+
+/* Lists */
+
+ul, ol {
+  text-indent: -.5cm;
+}
+
+li:before {
+  content: "";
+  margin-left: .5cm;
+}
+
+li {
+  margin: .15cm 0;
+}
+
+
+/* Images */
+
+figure.image-block {
+  margin: 1cm auto;
+  text-align: center;
+  max-width: 90%;
+}
+
+figure.image-block img {
+  border-radius: .15cm;
+  max-height: 8cm;
+  max-width: 100%;
+  margin-bottom: .25cm;
+  break-after: avoid;
+}
+
+figure.image-block figcaption {
+  font-size: .8em;
+  color: #666;
+}
+
+
+/* Quotes */
+
+blockquote {
+  padding-left: 1cm;
+  margin: 1em 0;
+}
+
+blockquote p {
+  font-family: Georgia, 'Times New Roman', Times, serif;
+  font-size: 1.1rem;
+  font-weight: 400;
+  line-height: 1.5;
+  margin: 0;
+}
+
+blockquote + p {
+  text-align: right;
+  font-family: Georgia, 'Times New Roman', Times, serif;
+  font-size: 0.8rem;
+  font-weight: 400;
+  line-height: 1.5;
+  margin: 0 0 4em;
+}
+
+
+/* References */
+
+div.references-block {
+  margin-top: 1cm;
+  background-color: #f9f9f9;
+  padding: .5cm;
+}
+
+div.references-block .title {
+  font-size: 1.1em;
+  margin-top: 0;
+  break-after: avoid;
+}
+
+div.references-block ul {
+  list-style-type: none;
+  padding: 0;
+  font-size: .85em;
+  text-align: left !important;
+}
+
+div.references-block li {
+  margin: .25cm 0;
+}
+
+div.references-block a {
+  color: #666;
+  text-decoration: none;
+  font-style: italic;
+}
+
+
+/* Tables */
+
+table {
+  border-collapse: collapse;
+  font-size: .85em;
+  width: 100%;
+}
+
+table thead,
+table tfoot {
+  font-family: 'Roboto Medium';
+}
+
+table tfoot {
+  margin-top: .5cm;
+  padding: .2cm 0;
+}
+
+table tfoot td {
+  padding: .25cm 0;
+}
+
+table th {
+  padding: 0 .1cm;
+}
+
+table th:first-child,
+table td:first-child {
+  padding-left: .15cm;
+}
+
+table th:last-child,
+table td:last-child {
+  padding-right: .15cm;
+}
+
+table th.q-pr-sm,
+table td.q-pr-sm {
+  padding-right: .2cm;
+}
+
+table .border-top,
+table td {
+  padding-top: 3px;
+  border-top: 1px solid #ddd;
+}
+
+table .border-left {
+  border-left: 1px solid #ddd;
+}
+
+table .border-right {
+  border-right: 1px solid #ddd;
+}
+
+table td.dense {
+  width: 1cm;
+}
+
+table svg.icon {
+  height: 12px;
+  width: 12px;
+  margin-top: .05cm;
+}
+
+
+/* Layout classes */
+
+.page-break {
+  break-before: page;
+}
+
+.keep-with-next {
+  break-after: avoid;
+}
+
+.spacer {
+  height: 1.25cm;
+}
+
+.spacer.small {
+  height: .35cm;
+}
+
+.q-ma-none {
+  margin: 0;
+}
+
+.q-mt-none {
+  margin-top: 0;
+}
+
+.q-mt-xs {
+  margin-top: .25cm;
+}
+
+.q-pb-sm {
+  padding-bottom: .05cm;
+}
+
+.q-pl-sm {
+  padding-left: .05cm;
+}
+
+.q-pl-md {
+  padding-left: .1cm;
+}
+
+.q-pl-lg {
+  padding-left: .2cm;
+}

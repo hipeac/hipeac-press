@@ -9,7 +9,7 @@
 
  :root {
   --vp-c-brand: #005eb8;
-  --vp-c-brand-light: #747bff;
+  --vp-c-brand-light: #454ce1;
   --vp-c-brand-lighter: #9499ff;
   --vp-c-brand-lightest: #bcc0ff;
   --vp-c-brand-dark: #005eb8;
@@ -98,8 +98,17 @@ html, body {
   color: #1d1d1d !important;
 }
 
+.vp-doc h1,
+.vp-doc h2,
+.vp-doc h3,
+.vp-doc h4,
+.vp-doc h5,
+.vp-doc h6 {
+  text-wrap: balance;
+}
+
 .vp-doc h1 {
-  margin: 1.5em 0;
+  margin: .5em 0 1.25em;
   width: 90%;
   font-family: 'Roboto Slab', Georgia, 'Times New Roman', Times, serif;
   font-size: 1.75rem;
@@ -121,19 +130,17 @@ html, body {
 }
 
 .vp-doc h3 {
+  font-family: 'Roboto Slab', Georgia, 'Times New Roman', Times, serif;
+  font-size: 1rem;
+  line-height: 1.3;
   margin: 1.75em 0 1.25em;
-  color: #444;
+  color: var(--vp-c-brand);
 }
 
 .vp-doc h4 {
+  font-size: 1.1rem;
   margin: 1.5em 0 1em;
-  color: #444;
-}
-
-.vp-doc h1 + p {
-  font-family: 'Roboto Slab', Georgia, 'Times New Roman', Times, serif;
-  font-size: 0.9em;
-  margin: -1em 0 2.5em;
+  color: #666;
 }
 
 .vp-doc p {
@@ -144,7 +151,7 @@ html, body {
   border-color: var(--vp-c-brand);
   border-width: 5px;
   padding-left: 20px;
-  margin: 2em 0;
+  margin: 1em 0;
 }
 
 .vp-doc blockquote p {
@@ -152,6 +159,16 @@ html, body {
   font-size: 1.1rem;
   font-weight: 400;
   line-height: 1.5;
+  margin: 0;
+}
+
+.vp-doc blockquote + p {
+  text-align: right;
+  font-family: 'Roboto Slab', Georgia, 'Times New Roman', Times, serif;
+  font-size: 0.8rem;
+  font-weight: 400;
+  line-height: 1.5;
+  margin: 0 0 4em;
 }
 
 .vp-doc ul,
@@ -169,12 +186,11 @@ html, body {
 }
 
 .vp-doc img {
-  border: 1px solid #dedede;
-  border-radius: 4px;
-  padding: 10px;
+  border-radius: 10px;
   margin: 3em auto 1em;
-  max-width: 100%;
+  max-width: 90%;
   max-height: 600px;
+  margin-bottom: 3em;
 }
 
 .vp-doc img.badge {
@@ -183,16 +199,18 @@ html, body {
   margin: 0;
 }
 
-.vp-doc img + em {
+.vp-doc img + br {
+  display: none;
+}
+
+.vp-doc img + br + em {
   /* image caption */
   display: block;
   font-size: 0.8em;
   color: #555;
-  margin: 1em 0 3em;
+  margin: -2em 0 3em;
   text-align: center;
 }
-
-.vp-doc img
 
 .vp-doc sub, .vp-doc sup {
   font-size: 0.65em;
@@ -264,4 +282,20 @@ footer.VPFooter .copyright {
 footer.VPFooter .copyright {
   margin-top: 1em;
   font-weight: bold;
+}
+
+/* Index hero */
+
+.VPHero .VPImage {
+  margin-top: 36px;
+}
+
+/* Image zoom */
+
+.medium-zoom-overlay {
+  z-index: 1000;
+}
+
+.medium-zoom-image {
+  z-index: 1001;
 }

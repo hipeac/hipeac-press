@@ -1,129 +1,176 @@
-import re
+"""Markdown transformer for the hipeac_press package."""
 
-from ..type_definitions import AuthorBio, BulletList, Header, Image, OrderedList, Paragraph, Quote
+import re
+from pathlib import Path
+
+from ..type_definitions import BulletList, Header, Image, OrderedList, Paragraph, Quote, Table
 from .base import Transformer
 
 
-def md_footnote(value: str) -> str:
-    """Replace all square brackets that contain a number with square brackets with a caret in front.
+def _process_footnotes(text: str) -> str:
+    """Convert references to footnotes.
 
-    If add_colon is True, also add a colon after the number, for the first occurrence only.
-    So: [12] becomes [^12]
-
-    Args:
-        value: The string to transform.
-
-    Returns:
-        The transformed string.
+    Converts:
+    - [number] to [^number]
+    - [text] to [^text]
+    - [text1, text2] to [^text1][^text2]
     """
-    return re.sub(r"\[(\d+)\]", r"[^\1]", value)
+    # First pass: handle comma-separated references
+    text = re.sub(
+        r"\[([^\]]+(?:,\s*[^\]]+)+)\]", lambda m: "".join(f"[^{r.strip()}]" for r in m.group(1).split(",")), text
+    )
+
+    # Second pass: convert single numbered references
+    text = re.sub(r"\[(\d+)\]", r"[^\1]", text)
+
+    # Third pass: convert remaining single text references (but not image alt text)
+    text = re.sub(r"\[([^\]^!][^\]]*)\]", r"[^\1]", text)
+
+    return text
+
+
+def _process_co2(text: str) -> str:
+    """Convert CO2 and CO2e to CO<sub>2</sub> and CO<sub>2</sub>e."""
+    text = re.sub(r"\bCO2e\b", "CO<sub>2</sub>e", text)
+    text = re.sub(r"\bCO2\b", "CO<sub>2</sub>", text)
+    return text
+
+
+def process_text(text: str) -> str:
+    """Process text for references and specific patterns."""
+    text = _process_co2(text)
+    return text
 
 
 class MarkdownTransformer(Transformer):
     """A transformer that converts a Document object into markdown."""
 
+    @staticmethod
+    def _badges(document) -> str:
+        md = f"<a href='./pdf/{document.slug}.pdf' target='_blank'><badge type='danger' text='PDF' /></a>"
+        md += "\n\n"
+        return md
+
+    @staticmethod
+    def _frontmatter(document) -> str:
+        md = "---\n"
+        md += f"title: >\n  {document.title}\n" if document.title else ""
+        md += f"description: >\n  {document.description}\n" if document.description else ""
+        md += f"authors: {', '.join(author.name for author in document.authors)}\n" if document.authors else ""
+        md += f"keywords: {', '.join(document.keywords)}\n" if document.keywords else ""
+        md += f"lastUpdated: {document.updated_at.isoformat()}\n"  # Use isoformat
+        md += (
+            f"""prev:
+  text: >
+    {document.prev.text}
+  link: {document.prev.link}
+"""
+            if document.prev
+            else "prev: false\n"
+        )
+        md += (
+            f"""next:
+  text: >
+    {document.next.text}
+  link: {document.next.link}
+"""
+            if document.next
+            else "next: false\n"
+        )
+        md += "---\n\n\n"
+
+        return md
+
+    @staticmethod
+    def _header_to_markdown(element):
+        return f"{'#' * element.level} {element.text}\n"
+
+    @staticmethod
+    def _paragraph_to_markdown(element):
+        # Process text in paragraph
+        return process_text(element.text) + "\n"
+
+    @staticmethod
+    def _bullet_list_to_markdown(element):
+        items = "\n".join(f"- {process_text(item)}" for item in element.items)
+        return f"{items}\n"
+
+    @staticmethod
+    def _ordered_list_to_markdown(element):
+        items = "\n".join(f"{i + 1}. {process_text(item)}" for i, item in enumerate(element.items))
+        return f"{items}\n"
+
+    @staticmethod
+    def _quote_to_markdown(element):
+        return f"> {process_text(element.text)}\n\n<small>{process_text(element.ref.text)}</small>\n"
+
+    @staticmethod
+    def _image_to_markdown(element):
+        # Convert the path to be relative to the markdown file
+        relative_path = "./images/" + str(Path(element.path).relative_to(Path(element.path).parents[1]))
+        md = f"![]({relative_path})"
+        if element.caption:
+            md += f"  \n*{process_text(element.caption)}*"
+        return f"{md}\n"
+
+    @staticmethod
+    def _table_to_markdown(element):
+        header_row = "| " + " | ".join(element.headers) + " |"
+        separator = "| " + " | ".join(["---"] * len(element.headers)) + " |"
+        rows = "\n".join("| " + " | ".join(row) + " |" for row in element.rows)
+        return f"{header_row}\n{separator}\n{rows}"
+
+    @staticmethod
+    def _info_box_to_markdown(element):
+        return f"::: info\n\n{process_text(element.text)}\n\n:::"
+
+    def to_markdown(self, element):
+        """Convert an element to markdown format."""
+        markdown_methods = {
+            Header: self._header_to_markdown,
+            Paragraph: self._paragraph_to_markdown,
+            BulletList: self._bullet_list_to_markdown,
+            OrderedList: self._ordered_list_to_markdown,
+            Quote: self._quote_to_markdown,
+            Image: self._image_to_markdown,
+            Table: self._table_to_markdown,
+        }
+
+        element_type = type(element)
+
+        if element_type in markdown_methods:
+            return markdown_methods[element_type](element)
+
+        return ""
+
     def get(
         self,
         *,
-        with_badges: bool = False,
-        with_frontmatter: bool = False,
-        prev: dict | None = None,
-        next: dict | None,
-        slug: str | None = None,
-    ) -> str:
-        """Return the markdown representation of a Document object.
-
-        Args:
-            with_badges: Whether to add badges for PDF and DOI. Defaults to False.
-            with_frontmatter: Whether to add extra info as frontmatter. Defaults to False.
-            prev: The previous document. Defaults to None.
-            next: The next document. Defaults to None.
-            slug: The slug of the document. Defaults to None.
-
-        Returns:
-            The markdown representation of the document.
-        """
+        with_badges: bool = True,
+        with_frontmatter: bool = True,
+    ) -> bytes:
+        """Return the markdown representation of a Document object."""
         md = ""
 
         if with_frontmatter:
-            md += "---\n"
-            md += f"title: >\n  {self.document.title}\n" if self.document.title else ""
-            md += f"description: >\n  {self.document.description}\n" if self.document.description else ""
-            md += (
-                f"authors: {', '.join(author.name for author in self.document.authors)}\n"
-                if self.document.authors
-                else ""
-            )
-            md += f"keywords: {', '.join(self.document.keywords)}\n" if self.document.keywords else ""
-            md += f"lastUpdated: {self.document.updated_at.isoformat()}\n"
-            md += (
-                f"""prev:
-  text: >
-    {prev['text']}
-  link: {prev['link']}
-"""
-                if prev
-                else "prev: false\n"
-            )
-            md += (
-                f"""next:
-  text: >
-    {next['text']}
-  link: {next['link']}
-"""
-                if next
-                else "next: false\n"
-            )
-            md += "---\n\n\n"
+            md += self._frontmatter(self.document)
 
         if with_badges:
-            md += "<Badge type='info' text='DOI 2122 323' />&nbsp;"
-            # md += f"<a href='./{slug}.pdf' target='_blank'><Badge type='danger' text='PDF' /></a>&nbsp;"
-            md += "\n\n"
+            md += self._badges(self.document)
 
-        figure_count = 0
-
+        # Convert main content
         for element in self.document.elements:
-            if isinstance(element, Header | Paragraph | Quote | BulletList | OrderedList):
-                tom = element.to_markdown()
-                if "### References" in tom:
-                    continue
-                md += tom + "\n"
+            md += self.to_markdown(element) + "\n"
 
-            elif isinstance(element, Image):
-                md += f"![]({element.path})"
-                if element.caption:
-                    figure_count += 1
-                    caption = element.caption.to_markdown()
-                    caption = caption[:-1] if caption.endswith("\n") else caption
-                    md += f"\n*{caption}*"
-                md += "\n\n"
+        md = _process_footnotes(md)
 
-        # Authors
-
-        authors = []
-
-        for element in self.document.elements:
-            if isinstance(element, AuthorBio):
-                authors.append(element)
-
-        if authors:
-            title = "Author" if len(authors) == 1 else "Authors"
-            md += f"\n::: info {title.upper()}\n\n"
-
-            for element in authors:
-                md += element.to_markdown() + "\n"
-
-            md += ":::\n\n"
-
-        # References
-
+        # Add references as footnotes if they exist
         if self.document.references:
-            md += "\n::: info REFERENCES\n\n"
-            for idx, reference in enumerate(self.document.references):
-                if reference.to_string() == "References":
-                    continue
-                md += f"[^{idx + 1}]: {reference.to_markdown()}"
-            md += "\n:::\n\n"
+            md += "\n## References\n\n"
 
-        return md
+            for ref in self.document.references:
+                md += f"[^{ref.code}]: {process_text(ref.text)}\n"
+
+            md += "\n"
+
+        return md.encode("utf-8")

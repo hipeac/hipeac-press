@@ -1,111 +1,107 @@
+"""Type definitions for the hipeac_press package."""
+
+from dataclasses import dataclass, field
 from datetime import datetime
-from pathlib import Path
-
-import orjson
-import pypandoc
-from pydantic import BaseModel
 
 
-class PandocElement(BaseModel):
-    """A Pandoc element."""
+@dataclass
+class NavItem:
+    """Represents a navigation item in the document."""
 
-    data: list
-
-    @property
-    def json_str(self) -> str:
-        """Return the json representation of the element."""
-        return orjson.dumps({"pandoc-api-version": [1, 23, 1], "meta": {}, "blocks": self.data}).decode()
-
-    def to_markdown(self) -> str:
-        """Return the markdown representation of the element."""
-        return pypandoc.convert_text(
-            self.json_str,
-            format="json",
-            to="gfm-raw_attribute-raw_html+subscript+superscript",
-            extra_args=["--wrap=none"],
-        )
-
-    def to_html(self) -> str:
-        """Return the html representation of the element without styles."""
-        return pypandoc.convert_text(
-            self.json_str,
-            format="json",
-            to="html",
-            extra_args=["--lua-filter", "pandoc_remove_attr.lua"],
-        ).replace("<sub>", "<sub rise='2'>")
-
-    def to_string(self) -> str:
-        """Return the string representation of the element."""
-        return pypandoc.convert_text(self.json_str, format="json", to="plain").strip()
+    text: str
+    link: str
 
 
-class AuthorBio(PandocElement):
-    """A paragraph with info about an author."""
-
-    @property
-    def name(self) -> str:
-        """Return the name of the author, splitting ... is ..."""
-        return self.to_markdown().split(" is ")[0]
-
-
-class Author(BaseModel):
-    """An author of a document."""
+@dataclass
+class Author:
+    """Represents an author of the document."""
 
     name: str
     bio: str | None = None
 
 
-class Header(PandocElement):
-    """A header element."""
+@dataclass
+class Paragraph:
+    """Represents a paragraph in the document."""
+
+    text: str
+
+
+@dataclass
+class Header:
+    """Represents a header in the document."""
 
     level: int
+    text: str
 
 
-class Paragraph(PandocElement):
-    """A paragraph element."""
+@dataclass
+class BulletList:
+    """Represents a bullet list in the document."""
+
+    items: list[str]
 
 
-class InfoBox(Paragraph):
-    """A custom paragraph element: info box."""
+@dataclass
+class OrderedList:
+    """Represents an ordered list in the document."""
+
+    items: list[str]
 
 
-class Quote(PandocElement):
-    """A custom paragraph element: quote."""
+@dataclass
+class Quote:
+    """Represents a quote in the document."""
+
+    text: str
+    ref: Paragraph | None = None
 
 
-class BulletList(PandocElement):
-    """A bullet list element."""
+@dataclass
+class Reference:
+    """Represents a reference in the document."""
+
+    code: str
+    text: str
 
 
-class OrderedList(PandocElement):
-    """An ordered list element."""
+@dataclass
+class InfoBox:
+    """Represents an info box in the document."""
+
+    text: str
 
 
-class Reference(PandocElement):
-    """A reference element."""
+@dataclass
+class Image:
+    """Represents an image in the document."""
+
+    path: str
+    caption: str | None = None
 
 
-class Figure(BaseModel):
-    """A figure element."""
+@dataclass
+class Table:
+    """Represents a table in the document."""
 
-    caption: PandocElement | None = None
-
-
-class Image(Figure):
-    """An image element."""
-
-    path: Path
+    headers: list[str]
+    rows: list[list[str]]
 
 
-class Document(BaseModel):
-    """A document."""
+@dataclass
+class Document:
+    """Represents the entire document."""
 
-    section: str | None = None
-    title: str | None = None
+    slug: str
+    title: str
     description: str | None = None
-    authors: list[Author] = []
-    elements: list[Header | Paragraph | Quote | Image | BulletList | OrderedList] = []
-    keywords: list[str] = []
-    references: list[Reference] = []
-    images: dict[str, str] = {}
+    authors: list[Author] = field(default_factory=list)
+    keywords: list[str] = field(default_factory=list)
+    elements: list[Paragraph | Header | BulletList | OrderedList | Quote | Reference | InfoBox | Image | Table] = field(
+        default_factory=list
+    )
+    references: list[Reference] = field(default_factory=list)
     updated_at: datetime | None = None
+
+    prev: NavItem | None = None
+    next: NavItem | None = None

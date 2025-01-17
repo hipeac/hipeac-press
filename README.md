@@ -16,11 +16,8 @@ of Python objects that can be used to generate different outputs.
 The application uses [Poetry][poetry] to manage application dependencies.
 
 ```bash
-poetry lock
-poetry install --sync --no-root
+poetry lock && poetry update && poetry sync
 ```
-
-`pandoc` needs to be installed on the system.
 
 ### Run the builder
 
@@ -51,7 +48,7 @@ The generated documents can be accessed as a [Vitepress][vitepress] website.
 
 ```bash
 yarn
-yarn dev
+yarn build && yarn dev
 ```
 
 
