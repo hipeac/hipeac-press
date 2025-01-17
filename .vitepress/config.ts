@@ -35,7 +35,7 @@ export default defineConfig({
     logo: '/hipeac.svg',
     sidebar: require('../.build/sidebar.json'),
     nav: [
-      { text: 'Rationale', link: '/introduction--introduction' },
+      { text: 'Articles', link: '/introduction--foreword' },
       { text: 'HiPEAC.net', link: 'https://www.hipeac.net/vision/' }
     ],
     search: {
@@ -46,7 +46,7 @@ export default defineConfig({
     ],
     footer: {
       message: 'The HiPEAC project has received funding from the European Union\'s Horizon Europe research and innovation funding programme under grant agreement number 101069836. Views and opinions expressed are however those of the author(s) only and do not necessarily reflect those of the European Union. Neither the European Union nor the granting authority can be held responsible for them.',
-      copyright: '© 2004-2024 High Performance, Edge And Cloud computing'
+      copyright: '© 2004-2025 High Performance, Edge And Cloud computing'
     },
   },
 

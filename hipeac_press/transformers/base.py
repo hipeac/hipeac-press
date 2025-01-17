@@ -1,13 +1,27 @@
-from ..docx import Docx
+"""Base transformer class for the hipeac_press package."""
+
+from abc import ABC, abstractmethod
+
+from ..type_definitions import Document
 
 
-class Transformer:
-    """A transformer takes a Document and transforms it into another format."""
+class Transformer(ABC):
+    """Abstract base class for transformers.
 
-    def __init__(self, docx: Docx):
-        self.docx = docx
-        self.document = docx.document
+    :param document: The document to transform.
+    """
 
-    def get(self):
-        """Get the transformed document on the desired format."""
+    def __init__(self, document: Document):
+        """Initialize the transformer with a document.
+
+        :param document: The document to transform.
+        """
+        self.document = document
+
+    @abstractmethod
+    def get(self) -> bytes:
+        """Return the transformed document as a byte string.
+
+        :returns: The transformed document as a byte string.
+        """
         raise NotImplementedError

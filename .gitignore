@@ -27,7 +27,10 @@ node_modules
 .vitepress/dist
 .source
 .build
-.build_copy
+
+html
+public/cover.png
+public/index.md
 
 # Other
 

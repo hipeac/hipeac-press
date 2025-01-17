@@ -4,18 +4,13 @@ from pdfino import Document as PdfDocument
 from pdfino import Margins, mm
 from reportlab.platypus import Frame, PageTemplate
 
-<<<<<<< Updated upstream
-from hipeac_press.type_definitions import Header, Paragraph, Quote
-=======
-from hipeac_press.type_definitions import AuthorBio, BulletList, Header, Image, OrderedList, Paragraph, Quote, Reference
->>>>>>> Stashed changes
-
-from .base import Transformer
+from ..type_definitions import BulletList, Header, Image, OrderedList, Paragraph, Quote, Reference
+from .markdown import MarkdownTransformer
 from .pdf_templates import FRONT_PAGE_PAD, HipeacVisionArticle
 
 
-class PdfTransformer(Transformer):
-    """A transformer that converts a Document object into a PDF."""
+class PdfTransformer(MarkdownTransformer):
+    """A transformer that converts a Document object into a PDF. Some elements use the markdown to HTML transformer."""
 
     def add_custom_templates(self, document: PdfDocument) -> None:
         """Add custom templates to a PDFino Document object.
@@ -34,6 +29,15 @@ class PdfTransformer(Transformer):
         first_page_template = PageTemplate(id="first_page", frames=[first_page_frame])
         document.doc.pageTemplates.insert(0, first_page_template)
         return document
+
+    def to_html(self, element) -> str:
+        """Convert an element to HTML.
+
+        :param element: The element to convert to HTML.
+        :return: The HTML representation of the element.
+        """
+        md = self.to_markdown(element)
+        
 
     def get(self, section: str | None) -> bytes:
         """Return the PDF representation of a Document object.
@@ -59,32 +63,26 @@ class PdfTransformer(Transformer):
                 pdf.add_svg(
                     str((Path(__file__).parent.parent.parent / "public" / "avatar.svg").absolute()), max_height=9 * mm
                 )
-                pdf.add_paragraph(element.to_html(), style="quote")
+                pdf.add_paragraph(element.text, style="quote")
                 pdf.use_template("main")
 
             elif isinstance(element, Header):
-                pdf.add_header(element.to_html(), style=f"h{element.level}")
+                pdf.add_header(element.text, style=f"h{element.level}")
                 if element.level == 1:
-                    title = element.to_string()
-
-            elif isinstance(element, AuthorBio):
-                if not first_author_found:
-                    pdf.add_paragraph(element.to_html(), style="authors")
-                    first_author_found = True
-                continue
+                    title = element.text
 
             elif isinstance(element, Reference):
-                print(element.to_html())
-                pdf.add_paragraph(element.to_html(), style="reference")
+                print(element.text)
+                pdf.add_paragraph(element.text, style="reference")
 
             elif isinstance(element, Paragraph):
                 try:
                     if isinstance(element, Paragraph) and not first_paragraph_found:
                         # first occurrence of paragraph should have a bigger font
                         first_paragraph_found = True
-                        pdf.add_paragraph(element.to_html(), style="p_first")
+                        pdf.add_paragraph(element.text, style="p_first")
                     else:
-                        pdf.p(element.to_html())
+                        pdf.p(element.text)
                 except Exception:
                     pdf.add_paragraph("ERROR", style="p")
 
@@ -102,7 +100,7 @@ class PdfTransformer(Transformer):
                     keep_with_next=element.caption is not None,
                 )
                 if element.caption:
-                    pdf.add_paragraph(element.caption.to_html(), style="caption")
+                    pdf.add_paragraph(element.caption.text, style="caption")
 
         # add references
 
@@ -113,7 +111,7 @@ class PdfTransformer(Transformer):
             for element in self.document.references:
                 if element.to_string() == "References":
                     continue
-                pdf.add_paragraph(element.to_html(), style="reference")
+                pdf.add_paragraph(element.text, style="reference")
 
         # add final column with metadata
 
@@ -127,19 +125,6 @@ class PdfTransformer(Transformer):
         elif len(self.document.authors) == 1:
             authors = self.document.authors[0].name
 
-        for element in self.document.elements:
-            if isinstance(element, AuthorBio):
-                i += 1
-                if i == 1:
-                    continue
-
-                pdf.add_separator(
-                    height=0.5 * mm,
-                    options={"color": "#555555", "margins": Margins(10 * mm if i > 2 else 0, 0, 3 * mm, 0)},
-                    keep_with_next=True,
-                )
-                pdf.add_paragraph(element.to_html(), style="author")
-
         pdf.add_separator(
             height=0.5 * mm,
             options={"color": "#555555", "margins": Margins(10 * mm, 0, 3 * mm, 0)},
@@ -152,7 +137,7 @@ class PdfTransformer(Transformer):
             style="p_metadata",
         )
         pdf.add_paragraph(
-            f'Cite as: {authors}, "{title}". ' "In Marc Duranton et al., editors, HiPEAC Vision 2024, Jan 2024.",
+            f'Cite as: {authors}, "{title}". ' "In Marc Duranton et al., editors, HiPEAC Vision 2025, Jan 2025.",
             style="p_metadata",
         )
         pdf.add_paragraph(
