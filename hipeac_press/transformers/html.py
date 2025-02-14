@@ -27,12 +27,12 @@ class HtmlTransformer(MarkdownTransformer):
 
     @staticmethod
     def _image_to_html(element, v: int = 5) -> str:
-        figure, figcaption = ("figure", "figcaption") if v == 5 else ("div", "small")
+        figure, figcaption = ("figure", "figcaption") if v == 5 else ("div", "p")
         img_path = "./images/" + str(Path(element.path).relative_to(Path(element.path).parents[1]))
         html = f"<{figure} class='figure image-block'>"
         html += f"<img src='{img_path}' />"
         if element.caption:
-            html += f"<{figcaption} class='figcaption'>{process_text(element.caption)}</{figcaption}>"
+            html += f"<{figcaption} class='figcaption'><small>{process_text(element.caption)}</small></{figcaption}>"
         return f"{html}</{figure}>\n"
 
     def to_html(self, element) -> str:
