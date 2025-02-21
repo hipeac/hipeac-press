@@ -6,7 +6,7 @@ import './style.css'
 import mediumZoom from 'medium-zoom';
 
 export default {
-  ...DefaultTheme,
+  extends: DefaultTheme,
   enhanceApp({ app, router, siteData }) {
     router.onAfterRouteChanged = () => {
       try {

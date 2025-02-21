@@ -47,7 +47,8 @@ export default defineConfig({
     logo: '/hipeac.svg',
     sidebar: require('../.build/sidebar.json'),
     nav: [
-      { text: 'Vision', link: '/introduction--foreword' },
+      { text: 'HiPEAC Vision 2025', link: '/introduction--foreword' },
+      { text: 'Archive', link: '/archive' },
       { text: 'HiPEAC.net', link: 'https://www.hipeac.net/' }
     ],
     search: {

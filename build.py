@@ -75,9 +75,13 @@ for section_index, section in enumerate(tree):
 
 # copy general files to the destination folder
 
-for file in {"index.md", "cover.png", "cover.jpg"}:
+for file in ["cover.jpg"]:
     os.system(f"cp {origin_path / file} {destination_path / file}")
     os.system(f"cp {origin_path / file} {PARENT / 'public'}")
+
+for file in ["index.md", "archive.md"]:
+    os.system(f"cp {origin_path / file} {destination_path / file}")
+    os.system(f"cp {origin_path / file} {destination_path}")
 
 
 # generate epub

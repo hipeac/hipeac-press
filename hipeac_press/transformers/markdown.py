@@ -47,7 +47,7 @@ class MarkdownTransformer(Transformer):
 
     @staticmethod
     def _badges(document) -> str:
-        md = f"<a href='./pdf/{document.slug}.pdf' target='_blank'><badge type='danger' text='PDF' /></a>"
+        md = f"<a href='./pdf/{document.slug}.pdf' target='_blank'><badge type='danger' text='Download PDF' /></a>"
         md += "\n\n"
         return md
 
